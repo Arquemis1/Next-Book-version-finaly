@@ -1,0 +1,399 @@
+# blog/views.py
+# ==============================================
+# ✅ IMPORTACIONES
+# ==============================================
+from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.utils import timezone
+from .models import Usuario, Libro, Administradores, AutorLibro, Perfil, Registro, Reporte, Comentario, Interaccion, Resena, Capitulo
+from django.db.models import Count, Avg
+from datetime import datetime
+from django.contrib.auth import login
+from django.contrib.auth.models import User
+from django.views.decorators.http import require_POST
+from django.contrib import messages
+
+
+# ==============================================
+# ✅ VISTAS
+# ==============================================
+
+# ------------------------------
+# Vista 0: Bienvenida
+# ------------------------------
+def welcome_view(request):
+    return render(request, 'blog/welcome_page.html')
+
+
+# ------------------------------
+# Vista 1: Página Principal / Home
+# ------------------------------
+def home_page(request):
+    libros_qs = Libro.objects.all().order_by('-fecha_creacion')[:20]
+    total_libros = Libro.objects.count()
+    total_usuarios = Usuario.objects.count()
+
+    libros = []
+    for libro in libros_qs:
+        lecturas = Interaccion.objects.filter(libro=libro, tipo='lectura').count()
+        if lecturas == 0:
+            lecturas = Interaccion.objects.filter(libro=libro).count()
+
+        valoracion_prom = Resena.objects.filter(libro=libro).aggregate(
+            promedio=Avg('calificacion')
+        )['promedio']
+        cantidad_resenas = Resena.objects.filter(libro=libro).count()
+
+        libro.lecturas = lecturas
+        libro.valoracion = round(valoracion_prom, 1) if valoracion_prom else None
+        libro.cantidad_resenas = cantidad_resenas
+        libros.append(libro)
+
+    usuario_real = None
+    perfil_real = None
+    es_administrador = False
+
+    if request.user.is_authenticated:
+        try:
+            registro = Registro.objects.get(email=request.user.email)
+            usuario_real = Usuario.objects.get(registro=registro)
+            perfil_real = Perfil.objects.get(usuario=usuario_real)
+            es_administrador = Administradores.objects.filter(usuario=usuario_real).exists()
+        except (Registro.DoesNotExist, Usuario.DoesNotExist, Perfil.DoesNotExist):
+            pass
+
+    contexto = {
+        'libros': libros,
+        'total_libros': total_libros,
+        'total_usuarios': total_usuarios,
+        'usuario_real': usuario_real,
+        'perfil_real': perfil_real,
+        'es_administrador': es_administrador,
+    }
+    return render(request, 'blog/home_page.html', contexto)
+
+
+# ------------------------------
+# Vista 2: Subir / Escribir Libro
+# ------------------------------
+@login_required
+def subir_libro(request):
+    return render(request, 'blog/escribir_libro.html')
+
+
+# ------------------------------
+# Vista 3: Guardar Libro
+# ------------------------------
+@login_required
+def guardar_libro(request):
+    if request.method == 'POST':
+        titulo = request.POST.get('titulo', 'Sin título').strip()
+        sinopsis = request.POST.get('sinopsis', '').strip()
+        contenido = request.POST.get('contenido', '')
+        portada = request.FILES.get('portada')
+
+        if not titulo:
+            return redirect('blog:subir_libro')
+
+        try:
+            registro = Registro.objects.get(email=request.user.email)
+            usuario_actual = Usuario.objects.get(registro=registro)
+        except (Registro.DoesNotExist, Usuario.DoesNotExist):
+            return redirect('blog:welcome')
+
+        nuevo_libro = Libro.objects.create(
+            titulo=titulo,
+            sinopsis=sinopsis,
+            fecha_creacion=timezone.now(),
+            estado='publicado',
+            archivo_pdf=contenido,
+            portada=portada
+        )
+
+        AutorLibro.objects.create(
+            usuario=usuario_actual,
+            libro=nuevo_libro,
+            rol='Autor'
+        )
+
+        # ✅ Crear capítulos automáticamente al publicar
+        # El editor separa capítulos con <hr>, uno por sección
+        partes = [p.strip() for p in contenido.split('<hr>') if p.strip()]
+        if partes:
+            for i, parte in enumerate(partes, start=1):
+                Capitulo.objects.create(
+                    libro=nuevo_libro,
+                    numero=i,
+                    titulo=f"Capítulo {i}",
+                    contenido=parte
+                )
+        else:
+            Capitulo.objects.create(
+                libro=nuevo_libro,
+                numero=1,
+                titulo="Capítulo 1",
+                contenido=contenido
+            )
+
+        return redirect('blog:perfil_libro', libro_id=nuevo_libro.id_libro)
+
+    return redirect('blog:subir_libro')
+
+
+# ------------------------------
+# ✅ Vista 4: Perfil del Libro
+# ------------------------------
+def perfil_libro(request, libro_id):
+    libro = get_object_or_404(Libro, id_libro=libro_id)
+
+    autor_link = AutorLibro.objects.filter(libro=libro).first()
+    autor = autor_link.usuario if autor_link else None
+
+    valoracion_prom = Resena.objects.filter(libro=libro).aggregate(
+        promedio=Avg('calificacion')
+    )['promedio']
+    cantidad_votos = Resena.objects.filter(libro=libro).count()
+
+    total_lecturas = Interaccion.objects.filter(libro=libro, tipo='lectura').count()
+    if total_lecturas == 0:
+        total_lecturas = Interaccion.objects.filter(libro=libro).count()
+
+    libros_del_autor = 0
+    if autor:
+        libros_del_autor = AutorLibro.objects.filter(usuario=autor).count()
+
+    usuario_real = None
+    if request.user.is_authenticated:
+        try:
+            registro = Registro.objects.get(email=request.user.email)
+            usuario_real = Usuario.objects.get(registro=registro)
+        except (Registro.DoesNotExist, Usuario.DoesNotExist):
+            pass
+
+    contexto = {
+        'libro': libro,
+        'autor': autor,
+        'valoracion_promedio': round(valoracion_prom, 1) if valoracion_prom else None,
+        'cantidad_votos': cantidad_votos,
+        'cantidad_paginas': 250,
+        'total_lecturas': total_lecturas,
+        'libros_del_autor': libros_del_autor,
+        'total_libros_autor': libros_del_autor,
+        'usuario_real': usuario_real,
+    }
+    return render(request, 'blog/perfil_libro.html', contexto)
+
+
+# ------------------------------
+# ✅ Vista 4b: Leer Capítulo (lector con scroll infinito)
+# ------------------------------
+def leer_capitulo(request, libro_id):
+    libro = get_object_or_404(Libro, id_libro=libro_id)
+
+    try:
+        numero_cap = int(request.GET.get('cap', 1))
+    except (TypeError, ValueError):
+        numero_cap = 1
+
+    capitulo = get_object_or_404(Capitulo, libro=libro, numero=numero_cap)
+    total_capitulos = Capitulo.objects.filter(libro=libro).count()
+
+    # Registrar lectura
+    if request.user.is_authenticated:
+        try:
+            registro = Registro.objects.get(email=request.user.email)
+            usuario_actual = Usuario.objects.get(registro=registro)
+            Interaccion.objects.get_or_create(
+                usuario=usuario_actual,
+                libro=libro,
+                tipo='lectura'
+            )
+        except (Registro.DoesNotExist, Usuario.DoesNotExist):
+            pass
+
+    # Pre-procesamos párrafos en Python (Django templates no tienen split())
+    parrafos = [p.strip() for p in capitulo.contenido.split('\n\n') if p.strip()]
+
+    contexto = {
+        'libro': libro,
+        'capitulo': {
+            'indice': capitulo.numero,
+            'total': total_capitulos,
+            'rango_total': range(1, total_capitulos + 1),
+            'parrafos': parrafos,
+            'data': {
+                'title': capitulo.titulo,
+            }
+        },
+    }
+
+    # Si viene del scroll infinito (fetch JS), solo devuelve el fragmento
+    if request.headers.get('X-Requested-With') == 'fetch' or request.GET.get('fragment') == '1':
+        return render(request, 'blog/lector_fragmento.html', contexto)
+
+    return render(request, 'blog/lector2.html', contexto)
+
+
+# ------------------------------
+# Vista 5: Perfil de Usuario
+# ------------------------------
+@login_required
+def perfil_usuario(request, usuario_id=None):
+    usuario = None
+    perfil = None
+
+    if not usuario_id:
+        try:
+            registro = Registro.objects.get(email=request.user.email)
+            usuario = Usuario.objects.get(registro=registro)
+            usuario_id = usuario.id
+        except (Registro.DoesNotExist, Usuario.DoesNotExist):
+            return render(request, 'blog/perfil_usuario.html', {
+                'error': 'No se encontró tu registro de usuario. ¿Estás registrado correctamente?'
+            })
+    else:
+        usuario = get_object_or_404(Usuario, id=usuario_id)
+
+    try:
+        perfil = Perfil.objects.get(usuario=usuario)
+    except Perfil.DoesNotExist:
+        perfil = None
+
+    ids_libros = AutorLibro.objects.filter(usuario=usuario).values_list('libro_id', flat=True)
+    mis_libros = Libro.objects.filter(id_libro__in=ids_libros).order_by('-fecha_creacion')
+
+    contexto = {
+        'usuario': usuario,
+        'perfil': perfil,
+        'mis_libros': mis_libros,
+        'total_libros': mis_libros.count(),
+        'seguidores': 150,
+        'siguiendo': 85,
+        'total_paginas': 3200,
+        'libros_favoritos': [],
+    }
+    return render(request, 'blog/perfil_usuario.html', contexto)
+
+
+# ------------------------------
+# Vista 6: Panel de Administrador
+# ------------------------------
+def es_administrador(usuario):
+    try:
+        registro = Registro.objects.get(email=usuario.email)
+        usuario_real = Usuario.objects.get(registro=registro)
+        return Administradores.objects.filter(usuario=usuario_real).exists()
+    except Exception:
+        return False
+
+
+@login_required
+@user_passes_test(es_administrador)
+def panel_administrador(request):
+    todos_usuarios = Usuario.objects.all().order_by('-id')
+    todos_libros = Libro.objects.all().order_by('-fecha_creacion')
+    todos_admins = Administradores.objects.all()
+    reportes_activos = Reporte.objects.count()
+    comentarios_pendientes = Comentario.objects.count()
+
+    contexto = {
+        'total_usuarios': todos_usuarios.count(),
+        'total_libros': todos_libros.count(),
+        'fecha_actual': timezone.now(),
+        'crecimiento_usuarios': 12.5,
+        'crecimiento_libros': 8.2,
+        'comentarios_pendientes': comentarios_pendientes,
+        'reportes_activos': reportes_activos,
+        'ultimos_usuarios': todos_usuarios[:5],
+        'lista_usuarios': todos_usuarios,
+        'lista_libros': todos_libros,
+        'lista_administradores': todos_admins,
+        'lista_categorias': [],
+        'lista_reportes': Reporte.objects.all(),
+        'usuario_actual': request.user
+    }
+    return render(request, 'blog/panel_admin.html', contexto)
+
+
+# ------------------------------
+# Vista 7: Registro
+# ------------------------------
+def registro(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        nombre = request.POST.get('nombre', '').strip()
+        apellido = request.POST.get('apellido', '').strip()
+        telefono = request.POST.get('telefono', '')
+
+        try:
+            user = User.objects.create_user(
+                username=email.split('@')[0],
+                email=email,
+                password=password
+            )
+            user.save()
+
+            registro_nuevo = Registro.objects.create(
+                email=email,
+                contrasena=password,
+                telefono=telefono,
+                fecha_registro=timezone.now()
+            )
+
+            usuario_nuevo = Usuario.objects.create(
+                nombre=nombre,
+                apellido=apellido,
+                telefono=telefono,
+                registro=registro_nuevo
+            )
+
+            Perfil.objects.create(
+                username=user.username,
+                descripcion="¡Hola! Soy nuevo en NextStory. 📚",
+                usuario=usuario_nuevo
+            )
+
+            login(request, user)
+            return redirect('blog:home')
+
+        except Exception:
+            return render(request, 'blog/registro.html', {
+                'error': 'Este correo ya está registrado o hubo un error.'
+            })
+
+    return render(request, 'blog/registro.html')
+
+
+# ------------------------------
+# ✅ Vista 8: Eliminar Libro
+# ------------------------------
+@login_required
+@require_POST
+def eliminar_libro(request, libro_id):
+    libro = get_object_or_404(Libro, id_libro=libro_id)
+
+    try:
+        registro = Registro.objects.get(email=request.user.email)
+        usuario_actual = Usuario.objects.get(registro=registro)
+    except (Registro.DoesNotExist, Usuario.DoesNotExist):
+        messages.error(request, 'No se pudo verificar tu identidad.')
+        return redirect('blog:perfil_libro', libro_id=libro.id_libro)
+
+    es_autor = AutorLibro.objects.filter(libro=libro, usuario=usuario_actual).exists()
+
+    if not es_autor:
+        messages.error(request, 'No tienes permiso para eliminar este libro.')
+        return redirect('blog:perfil_libro', libro_id=libro.id_libro)
+
+    titulo = libro.titulo
+
+    Resena.objects.filter(libro=libro).delete()
+    Interaccion.objects.filter(libro=libro).delete()
+    Comentario.objects.filter(libro=libro).delete()
+    AutorLibro.objects.filter(libro=libro).delete()
+    Capitulo.objects.filter(libro=libro).delete()
+
+    libro.delete()
+    messages.success(request, f'"{titulo}" fue eliminado correctamente.')
+    return redirect('blog:home')

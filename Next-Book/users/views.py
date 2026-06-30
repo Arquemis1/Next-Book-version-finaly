@@ -1,0 +1,71 @@
+from django.shortcuts import render, redirect
+from .forms import CustomUserCreationForm
+from django.contrib.auth import login, logout
+from django.contrib import messages
+# ✅ Importamos tus cosas
+from blog.models import Registro, Usuario, Perfil
+from django.utils import timezone
+ 
+ 
+def register(request):
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            # 1. Guardamos usuario Django
+            user = form.save()
+ 
+            # ✅ 2. Guardamos Registro (SIN BUSCAR ANTES, lo creamos directo)
+            registro = Registro.objects.create(
+                email=user.email,
+                contrasena=user.password,
+                fecha_registro=timezone.now()
+            )
+            # ✅ 3. Guardamos Usuario
+            usuario = Usuario.objects.create(
+                nombre=user.username,
+                apellido="",
+                registro=registro  # <-- Usamos el que acabamos de crear
+            )
+            # ✅ 4. Guardamos Perfil
+            Perfil.objects.create(
+                username=user.username,
+                descripcion="¡Hola! Soy nuevo en NextStory. 📚",
+                usuario=usuario  # <-- Usamos el que acabamos de crear
+            )
+            # 5. Sesión y redirección
+            login(request, user)
+            messages.success(request, f'¡Bienvenido, {user.username}! Tu cuenta ha sido creada.')
+            return redirect('blog:home')
+    else:
+        form = CustomUserCreationForm()
+    return render(request, 'users/register.html', {'form': form})
+ 
+ 
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+ 
+ 
+@login_required
+@require_POST
+def editar_perfil(request):
+    perfil, _ = Perfil.objects.get_or_create(usuario=request.user)
+    if 'descripcion' in request.POST:
+        perfil.descripcion = request.POST['descripcion'][:300]
+    if 'nombre' in request.POST:
+        request.user.first_name = request.POST['nombre']
+        request.user.save()
+    if 'foto' in request.FILES:
+        perfil.foto = request.FILES['foto']
+    if 'portada' in request.FILES:
+        perfil.portada = request.FILES['portada']
+    perfil.save()
+    return JsonResponse({'ok': True})
+ 
+ 
+# ✅ NUEVO: vista propia de logout que acepta GET
+# (LogoutView de Django moderno solo acepta POST, pero nuestros links
+# de "Cerrar sesión" son <a href> que generan peticiones GET)
+def cerrar_sesion(request):
+    logout(request)
+    return redirect('/')

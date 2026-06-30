@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NextStory — Página no encontrada</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #0e0e10;
+  --surface: #16161a;
+  --surface2:#1f1f25;
+  --border:  #2a2a32;
+  --accent:  #d4f870;
+  --accent2: #b8dc54;
+  --text:    #e8e8f0;
+  --muted:   #6b6b80;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 5%; height: 68px;
+  position: sticky; top: 0; z-index: 200;
+  background: rgba(14,14,16,.88);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+}
+.logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.logo-mark { width:32px; height:32px; background:var(--accent); border-radius:8px; display:grid; place-items:center; }
+.logo-mark svg { width:16px; height:16px; }
+.logo-name { font-family:'Syne',sans-serif; font-weight:800; font-size:1.15rem; color:var(--text); letter-spacing:-.02em; }
+
+.page {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 5%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 50% at 50% 40%, rgba(212,248,112,.05) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.big-404 {
+  position: absolute;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(140px, 22vw, 260px);
+  color: var(--surface2);
+  letter-spacing: -.04em;
+  line-height: 1;
+  user-select: none;
+  pointer-events: none;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -54%);
+}
+
+.book-wrap {
+  position: relative;
+  width: 90px;
+  height: 110px;
+  margin-bottom: 32px;
+  z-index: 1;
+}
+.book {
+  width: 90px; height: 110px;
+  border-radius: 3px 10px 10px 3px;
+  background: linear-gradient(135deg, #1a1a2e, #2d1b4e);
+  position: relative;
+  box-shadow: -4px 4px 0 var(--accent), 0 16px 40px rgba(0,0,0,.6);
+  animation: bookFloat 4s ease-in-out infinite;
+}
+.book::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 8px;
+  background: var(--accent);
+  border-radius: 3px 0 0 3px;
+  opacity: .8;
+}
+.book-lines {
+  position: absolute;
+  inset: 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  opacity: .3;
+}
+.book-line { height: 5px; border-radius: 3px; background: var(--text); }
+.book-line.accent { background: var(--accent); width: 55%; }
+.book-line.short  { width: 70%; }
+
+.book-question {
+  position: absolute;
+  top: -18px; right: -14px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  display: grid; place-items: center;
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--accent);
+  animation: bookFloat 4s ease-in-out infinite;
+  animation-delay: .3s;
+}
+
+@keyframes bookFloat {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-10px); }
+}
+
+.error-tag {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 100px;
+  padding: 5px 14px;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 18px;
+  z-index: 1;
+}
+.error-tag span { width:6px; height:6px; background:var(--accent); border-radius:50%; }
+
+.error-title {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  color: #fff;
+  margin-bottom: 12px;
+  z-index: 1;
+}
+.error-sub {
+  font-size: .95rem;
+  color: var(--muted);
+  font-weight: 300;
+  max-width: 380px;
+  line-height: 1.75;
+  margin-bottom: 36px;
+  z-index: 1;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  z-index: 1;
+}
+.btn-primary {
+  background: var(--accent);
+  color: #0e0e10;
+  border: none;
+  padding: 12px 26px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: .9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background .2s, transform .15s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+.btn-ghost {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 26px;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  font-size: .9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color .2s, color .2s;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-ghost:hover { border-color: var(--muted); color: #fff; }
+.btn-ghost svg, .btn-primary svg {
+  width: 16px; height: 16px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 24px 5%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.footer-copy { font-size: .82rem; color: var(--muted); }
+.footer-links { display: flex; gap: 20px; }
+.footer-links a { font-size: .82rem; color: var(--muted); text-decoration: none; transition: color .2s; }
+.footer-links a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="{% url 'blog:home' %}">
+    <div class="logo-mark">
+      <svg viewBox="0 0 16 16" fill="none">
+        <rect x="2" y="2" width="5" height="12" rx="1.5" fill="#0e0e10"/>
+        <rect x="9" y="2" width="5" height="8" rx="1.5" fill="#0e0e10"/>
+      </svg>
+    </div>
+    <span class="logo-name">NextStory</span>
+  </a>
+</header>
+
+<div class="page">
+  <div class="big-404">404</div>
+
+  <div class="book-wrap">
+    <div class="book">
+      <div class="book-lines">
+        <div class="book-line accent"></div>
+        <div class="book-line"></div>
+        <div class="book-line short"></div>
+        <div class="book-line"></div>
+        <div class="book-line short"></div>
+        <div class="book-line"></div>
+      </div>
+    </div>
+    <div class="book-question">?</div>
+  </div>
+
+  <div class="error-tag"><span></span> Error 404</div>
+  <h1 class="error-title">Esta página se perdió entre los libros</h1>
+  <p class="error-sub">La página que buscas no existe o fue movida. Pero hay miles de historias esperándote en el catálogo.</p>
+
+  <div class="error-actions">
+    <a class="btn-primary" href="{% url 'blog:home' %}">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      Ir al catálogo
+    </a>
+    {% if user.is_authenticated %}
+    <a class="btn-ghost" href="{% url 'blog:perfil_usuario' %}">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>
+      Mi perfil
+    </a>
+    {% else %}
+    <a class="btn-ghost" href="/accounts/login/">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.58-7 8-7s8 3 8 7"/></svg>
+      Iniciar sesión
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<footer>
+  <span class="footer-copy">© 2026 NextStory</span>
+  <div class="footer-links">
+    <a href="#">Acerca de</a>
+    <a href="#">Privacidad</a>
+    <a href="#">Términos</a>
+  </div>
+</footer>
+
+</body>
+</html>

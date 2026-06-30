@@ -1,0 +1,28 @@
+
+{# blog/templates/blog/lector_fragmento.html #}
+{# Bloque de un solo capítulo. Se incluye en lector2.html y también se devuelve solo vía fetch para el scroll infinito. #}
+
+<article class="chapter-block" data-indice="{{ capitulo.indice }}" data-total="{{ capitulo.total }}">
+
+    <div class="chapter-meta-row">
+        <div class="chapter-pill">
+            <span>CAPÍTULO {{ capitulo.indice }} DE {{ capitulo.total }}</span>
+        </div>
+        <div class="progress-segments">
+            {% for i in capitulo.rango_total %}
+                <span class="{% if i <= capitulo.indice %}filled{% endif %}"></span>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="chapter-title">
+        <h1>{{ capitulo.data.title }}</h1>
+    </div>
+
+    <div class="reader-content">
+        {% for parrafo in capitulo.parrafos %}
+            <p>{{parrafo|safe }}</p>
+        {% endfor %}
+    </div>
+
+</article>
