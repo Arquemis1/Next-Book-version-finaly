@@ -28,7 +28,7 @@ urlpatterns = [
     # ✅ Rutas de tu aplicación principal (blog)
     path('', include('blog.urls')), 
 path('accounts/login/', LoginView.as_view(
-    template_name='users/login.html',  # ✅ Ruta correcta para tu estructura
+    template_name='users/login.html',
     redirect_authenticated_user=True
 ), name='login'),
 
