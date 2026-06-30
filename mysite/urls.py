@@ -27,10 +27,9 @@ urlpatterns = [
     
     # ✅ Rutas de tu aplicación principal (blog)
     path('', include('blog.urls')), 
-       path('accounts/login/', LoginView.as_view(
-        template_name='users/login.html'
-    ), name='login'),
-     path('accounts/', include('django.contrib.auth.urls')),
+path('accounts/login/', LoginView.as_view(
+    template_name='users/login.html'  # ✅ Busca dentro de la app users
+), name='login'),
 
     # ✅ Rutas de cuentas (Login, Registro, Logout)
     # Coincide exactamente con los enlaces que pusimos: /accounts/login/, /accounts/register/
