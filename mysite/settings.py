@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-7zcvc3skhpapor&%u&3ppcis)-wah0r&1v^2!yabe7@ijsos2a'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = false
+DEBUG = true
 
 ALLOWED_HOSTS = [
     'next-book-iz06.onrender.com',
