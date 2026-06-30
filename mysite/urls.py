@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from blog import views as blog_views
-
+from django.contrib.auth.views import LoginView, LogoutView
 # ✅ NUEVO: Importamos lo necesario para archivos multimedia
 from django.conf import settings
 from django.conf.urls.static import static
